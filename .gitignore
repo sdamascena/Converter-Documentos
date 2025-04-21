@@ -1,0 +1,6 @@
+arquivos_exemplo/
+projeto_pdf_excel/assets/
+__pycache__/
+*.pyc
+*.log
+*.DS_Store
