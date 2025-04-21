@@ -1,6 +1,7 @@
 from pathlib import Path
 
-import pypdf
+from PyPDF2 import PdfReader, PdfWriter
+
 import streamlit as st
 
 from utilidades import pegar_dados_pdf
@@ -51,13 +52,13 @@ def exibir_menu_extrair(coluna):
 
 def extrair_pagina_pdf(arquivo_pdf, numero_pagina):
     # Pegar página
-    leitor = pypdf.PdfReader(arquivo_pdf)
+    leitor = PdfReader(arquivo_pdf)
     try:
         pagina = leitor.pages[numero_pagina - 1]
     except IndexError:  # O valor de numero_pagina está além do limite de páginas do PDF
         return None
     # Escrever página para PDF temporário e ler os seus dados
-    escritor = pypdf.PdfWriter()
+    escritor = PdfWriter()
     escritor.add_page(pagina)
     dados_pdf = pegar_dados_pdf(escritor=escritor)
     return dados_pdf
