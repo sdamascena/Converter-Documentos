@@ -3,8 +3,9 @@ from io import BytesIO
 import streamlit as st
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-import pypdf
+from PyPDF2 import PdfReader, PdfWriter
 from utilidades import pegar_dados_pdf
+
 
 def exibir_menu_marca_dagua(coluna):
     """Exibe o menu para adicionar uma marca d'água com texto sobre todas as páginas de um PDF."""
@@ -31,17 +32,18 @@ def exibir_menu_marca_dagua(coluna):
                     use_container_width=True
                 )
 
+
 def gerar_pdf_com_texto(texto):
-    """Gera um PDF com várias repetições do texto da marca d’água em grade."""
+    """Gera um PDF com texto da marca d’água espalhado na página."""
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
     c.setFont("Helvetica", 30)
-    c.setFillGray(0.6, 0.2)  # tom de cinza + transparência
+    c.setFillGray(0.6, 0.2)
 
-    step_x = 200  # espaço horizontal entre marcas
-    step_y = 150  # espaço vertical entre marcas
+    step_x = 200
+    step_y = 150
 
     for x in range(0, int(width) + step_x, step_x):
         for y in range(0, int(height) + step_y, step_y):
@@ -56,27 +58,16 @@ def gerar_pdf_com_texto(texto):
     buffer.seek(0)
     return buffer
 
+
 def aplicar_marca_dagua_texto(arquivo_pdf, marca_pdf_buffer):
-    """Aplica a marca d'água de texto em cada página do PDF original."""
-    leitor_pdf = pypdf.PdfReader(arquivo_pdf)
-    marca_pdf = pypdf.PdfReader(marca_pdf_buffer)
+    """Aplica a marca d'água em cada página do PDF original usando PyPDF2."""
+    leitor_pdf = PdfReader(arquivo_pdf)
+    marca_pdf = PdfReader(marca_pdf_buffer)
     pagina_marca = marca_pdf.pages[0]
 
-    escritor = pypdf.PdfWriter()
-
+    escritor = PdfWriter()
     for pagina in leitor_pdf.pages:
-        escala_x = pagina.mediabox.width / pagina_marca.mediabox.width
-        escala_y = pagina.mediabox.height / pagina_marca.mediabox.height
-        escala = min(escala_x, escala_y)
-
-        largura_marca = pagina_marca.mediabox.width * escala
-        altura_marca = pagina_marca.mediabox.height * escala
-
-        desloc_x = (pagina.mediabox.width - largura_marca) / 2
-        desloc_y = (pagina.mediabox.height - altura_marca) / 2
-
-        transf = pypdf.Transformation().scale(escala).translate(tx=desloc_x, ty=desloc_y)
-        pagina.merge_transformed_page(pagina_marca, transf, over=True)
+        pagina.merge_page(pagina_marca)  # PyPDF2 não tem transformações, apenas merge simples
         escritor.add_page(pagina)
 
     buffer = BytesIO()
