@@ -1,6 +1,5 @@
 import pdfkit
-import pypdf
-
+from PyPDF2 import PdfReader, PdfWriter
 from projeto_pdf_excel.caminhos import PASTA_DADOS, PASTA_ASSETS, PASTA_OUTPUT
 from projeto_pdf_excel.formatacao_de_dados import pegar_template_renderizado
 
@@ -56,10 +55,15 @@ def gerar_relatorio(string_html, mes_referencia, pasta_output):
 
 
 def adicionar_layout_a_relatorio(caminho_relatorio, caminho_layout):
-    layout_pdf = pypdf.PdfReader(caminho_layout).pages[0]
-    pdf = pypdf.PdfWriter(clone_from=caminho_relatorio)
-    pdf.pages[0].merge_page(layout_pdf, over=True)
-    pdf.write(caminho_relatorio)
+    layout_pdf = PdfReader(caminho_layout).pages[0]
+    pdf = PdfWriter()
+    with open(caminho_relatorio, "rb") as f:
+        relatorio = PdfReader(f)
+        for page in relatorio.pages:
+            page.merge_page(layout_pdf)
+            pdf.add_page(page)
+    with open(caminho_relatorio, "wb") as f_out:
+        pdf.write(f_out)
 
 
 if __name__ == '__main__':
