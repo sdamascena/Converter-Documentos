@@ -1,70 +1,51 @@
-import pdfkit
 from PyPDF2 import PdfReader, PdfWriter
-from projeto_pdf_excel.caminhos import PASTA_DADOS, PASTA_ASSETS, PASTA_OUTPUT
-from projeto_pdf_excel.formatacao_de_dados import pegar_template_renderizado
-
-CONFIG = {
-    'mes_referencia': '2023-02',
-    'pasta_dados': PASTA_DADOS,
-    'arquivo_excel': 'dados.xlsx',
-    'pasta_assets': PASTA_ASSETS,
-    'arquivo_template': 'template.jinja',
-    'arquivo_css': 'style.css',
-    'pasta_output': PASTA_OUTPUT,
-    'arquivo_layout': 'layout_relatorio.pdf'
-}
+import streamlit as st
+from utilidades import pegar_dados_pdf
 
 
-def main(
-        mes_referencia,
-        pasta_dados,
-        arquivo_excel,
-        pasta_assets,
-        arquivo_template,
-        arquivo_css,
-        pasta_output,
-        arquivo_layout,
-) -> None:
-    print('Iniciando geração de relatório...')
-    pasta_output.mkdir(exist_ok=True, parents=True)
+def exibir_menu_combinar(coluna):
+    """Exibe o menu para combinar dois ou mais arquivos PDFs em um único arquivo."""
+    with coluna:
+        st.markdown(
+            """
+        # Combinar PDFs
 
-    string_html = pegar_template_renderizado(
-        mes_referencia=mes_referencia,
-        pasta_dados=pasta_dados,
-        arquivo_excel=arquivo_excel,
-        pasta_assets=pasta_assets,
-        arquivo_template=arquivo_template,
-        arquivo_css=arquivo_css,
-    )
-    caminho_relatorio = gerar_relatorio(
-        string_html=string_html,
-        mes_referencia=mes_referencia,
-        pasta_output=pasta_output,
-    )
+        Selecione dois ou mais arquivos PDF para combinar:
+        """
+        )
 
-    caminho_layout = pasta_assets / arquivo_layout
-    adicionar_layout_a_relatorio(caminho_relatorio=caminho_relatorio, caminho_layout=caminho_layout)
-    print(f'Relatório gerado no caminho: {caminho_relatorio}')
+        arquivos_pdf = st.file_uploader(
+            label="Selecione os arquivos PDF para combinar...",
+            type='pdf',
+            accept_multiple_files=True,
+        )
 
+        botoes_desativados = not arquivos_pdf
 
-def gerar_relatorio(string_html, mes_referencia, pasta_output):
-    nome_relatorio = f'Relatório Mensal - {mes_referencia}.pdf'
-    caminho_relatorio = pasta_output / nome_relatorio
-    pdfkit.from_string(string_html, output_path=str(caminho_relatorio))
-    return caminho_relatorio
+        clicou_processar = st.button(
+            'Clique para processar o arquivo PDF...',
+            disabled=botoes_desativados,
+            use_container_width=True,
+        )
 
-
-def adicionar_layout_a_relatorio(caminho_relatorio, caminho_layout):
-    layout_pdf = PdfReader(caminho_layout).pages[0]
-    pdf = PdfWriter()
-    with open(caminho_relatorio, "rb") as f:
-        relatorio = PdfReader(f)
-        for page in relatorio.pages:
-            page.merge_page(layout_pdf)
-            pdf.add_page(page)
-    with open(caminho_relatorio, "wb") as f_out:
-        pdf.write(f_out)
+        if clicou_processar:
+            dados_pdf = combinar_arquivos_pdf(arquivos_pdf)
+            nome_arquivo = f'combinado.pdf'
+            st.download_button(
+                'Clique para baixar o arquivo PDF resultante...',
+                type='primary',
+                data=dados_pdf,
+                file_name=nome_arquivo,
+                mime='application/pdf',
+                use_container_width=True,
+            )
 
 
-if __name__ == '__main__':
-    main(**CONFIG)
+def combinar_arquivos_pdf(arquivos_pdf):
+    escritor = PdfWriter()
+    for arquivo_pdf in arquivos_pdf:
+        leitor = PdfReader(arquivo_pdf)
+        for pagina in leitor.pages:
+            escritor.add_page(pagina)
+    dados_pdf = pegar_dados_pdf(escritor=escritor)
+    return dados_pdf
